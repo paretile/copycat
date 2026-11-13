@@ -6,7 +6,10 @@
 <title>Copycat Writer</title>
 <meta name="description" content="Copycat Writer: a quiet plain-text writing tool. An unofficial copy of Jason Fried's Write_On.">
 <meta name="author" content="Paretile">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23101018'/%3E%3Cpath d='M9 22h14' stroke='%23D4A017' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M10 10v7' stroke='%23FEFDFC' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#101018">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -139,5 +142,10 @@
   </div>
 </div>
 <script src="app.js"></script>
+<script>
+if ((location.protocol === 'http:' || location.protocol === 'https:') && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function () {});
+}
+</script>
 </body>
 </html>

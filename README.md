@@ -28,9 +28,11 @@ AI Alternatives (Ctrl+Shift+E), the scans, and the trims can use any OpenAI-comp
 
 Without a key, AI Alternatives politely asks for one. The scans and trims fall back to a quick built-in rule set: filler words, hedges, passive voice, run-ons.
 
-## Run it
+## Use it
 
-Open `index.html` in a browser. That's the whole install. It works straight from disk, and it works on any static host (Cloudflare Pages, for example) with no build step.
+Open [https://paretile.com/copycat-writer/](https://paretile.com/copycat-writer/). In Chrome or Edge, install it as an app from the address bar or the browser's Install app menu. Once installed, it works offline.
+
+Or download this repo and open `index.html` in a browser. That works straight from disk, with no server and no build step. Installing as an app needs a web host; browsers only allow that over HTTPS.
 
 Recent Chrome, Edge, Firefox, or Safari. Scan highlights use the CSS Custom Highlight API.
 

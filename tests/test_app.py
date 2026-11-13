@@ -18,6 +18,11 @@ def check(name, cond, detail=''):
 def serve():
     class Quiet(http.server.SimpleHTTPRequestHandler):
         def log_message(self, *a): pass
+        extensions_map = dict(getattr(http.server.SimpleHTTPRequestHandler, 'extensions_map', {}))
+        extensions_map.update({
+            '.webmanifest': 'application/manifest+json',
+            '.js': 'application/javascript',
+        })
     h = functools.partial(Quiet, directory=ROOT)
     srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), h)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -49,7 +54,12 @@ def text(page):
 def main():
     srv = serve()
     url = 'http://127.0.0.1:%d/index.html' % srv.server_address[1]
-    exe = os.environ.get('CHROME') or ('/usr/bin/google-chrome' if os.path.exists('/usr/bin/google-chrome') else None)
+    exe = os.environ.get('CHROME')
+    if not exe:
+        for candidate in ('/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'):
+            if os.path.exists(candidate):
+                exe = candidate
+                break
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
         try:
@@ -395,7 +405,33 @@ def run(b, url):
         sp.screenshot(path=os.path.join(SHOTS, '2-workspace-alternates.png'))
         sc.close()
 
-        # 17. Opening index.html straight from disk works too.
+        # 17. PWA: relative manifest and a service worker that registers over http.
+        man_href = page.evaluate("() => document.querySelector('link[rel=\"manifest\"]').getAttribute('href')")
+        check('manifest link is relative', bool(man_href) and not man_href.startswith('/') and '://' not in man_href, man_href)
+        man = page.evaluate("""async () => {
+          const href = document.querySelector('link[rel="manifest"]').href;
+          const r = await fetch(href);
+          return { ok: r.ok, type: (r.headers.get('content-type') || ''), body: await r.json() };
+        }""")
+        check('manifest is served as manifest+json', man['ok'] and 'application/manifest+json' in man['type'], man.get('type'))
+        check('manifest name is Copycat Writer', man['body'].get('name') == 'Copycat Writer', man['body'].get('name'))
+        start, scope = man['body'].get('start_url', ''), man['body'].get('scope', '')
+        check('manifest start_url and scope are relative', start.startswith('./') and scope.startswith('./'), (start, scope))
+        purposes = set()
+        sizes = set()
+        for ic in man['body'].get('icons') or []:
+            purposes.add(ic.get('purpose') or '')
+            sizes.add(ic.get('sizes') or '')
+            check('manifest icon src is relative', bool(ic.get('src')) and not ic['src'].startswith('/') and '://' not in ic['src'], ic.get('src'))
+        check('manifest has 192, 512 and maskable icons', '192x192' in sizes and '512x512' in sizes and 'maskable' in purposes, (sizes, purposes))
+        sw = page.evaluate("""async () => {
+          const r = await navigator.serviceWorker.ready;
+          const keys = await caches.keys();
+          return { scope: r.scope, active: !!(r.active && r.active.state), keys: keys, cache: 'copycat-writer-v1' };
+        }""")
+        check('service worker becomes ready on http', sw['active'] and 'copycat-writer-v1' in sw['keys'], sw)
+
+        # 18. Opening index.html straight from disk works too, and does not register a worker.
         p2 = ctx.new_page(); errs2 = []
         p2.on('pageerror', lambda e: errs2.append(str(e)))
         p2.goto('file://' + os.path.join(ROOT, 'index.html'))
@@ -406,6 +442,11 @@ def run(b, url):
         bb = p2.evaluate("() => { const r = document.createRange(); const n = document.getElementById('editor').firstChild; r.setStart(n, 6); r.setEnd(n, 7); const b = r.getBoundingClientRect(); return [b.x + 2, b.y + b.height/2]; }")
         p2.mouse.click(bb[0], bb[1], button='right')
         check('file:// typing, count and right-click menu work', p2.inner_text('#count').startswith('2 words') and p2.is_visible('#ctx') and p2.evaluate("getSelection().toString()") == 'disk', (p2.inner_text('#count'), p2.evaluate("getSelection().toString()"), errs2))
+        no_sw = p2.evaluate("""() => {
+          if (!('serviceWorker' in navigator)) return true;
+          return navigator.serviceWorker.controller == null;
+        }""")
+        check('file:// does not register a service worker', no_sw and not errs2, (no_sw, errs2))
 
 if __name__ == '__main__':
     main()
