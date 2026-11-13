@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copycat Writer</title>
+<meta name="description" content="Copycat Writer: a quiet plain-text writing tool. An unofficial copy of Jason Fried's Write_On.">
+<meta name="author" content="Paretile">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23101018'/%3E%3Cpath d='M9 22h14' stroke='%23D4A017' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M10 10v7' stroke='%23FEFDFC' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8V3M7 21v-7h10v7"/></symbol>
+  <symbol id="i-overflow" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M10 14l7-7M12 7h5v5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M4 4l16 16M20 4L4 20" stroke-width="2.2"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10v7M8 7v.01M12 17v-7M12 13a3 3 0 0 1 6 0v4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-docs" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-beaker" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7.5 15h9"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/></symbol>
+</svg>
+
+<div id="app">
+  <button id="count" class="count" title="Click to hide or show the workspace">0 words · 0 chars</button>
+
+  <div class="topbar ws-only" role="toolbar" aria-label="Document actions">
+    <span id="savestate" class="savestate" aria-live="polite"></span>
+    <button class="ico" id="btn-save" title="Save (Ctrl+S)" aria-label="Save"><svg><use href="#i-save"/></svg></button>
+    <button class="ico" id="btn-overflow" title="Overflow scratchpad" aria-label="Toggle Overflow"><svg><use href="#i-overflow"/></svg></button>
+    <button class="ico" id="btn-x" title="Post to X" aria-label="Post to X"><svg><use href="#i-x"/></svg></button>
+    <button class="ico disabled" id="btn-linkedin" title="LinkedIn: not today" aria-label="LinkedIn (disabled)" aria-disabled="true"><svg><use href="#i-in"/></svg></button>
+    <button class="ico" id="btn-help" title="Keyboard shortcuts" aria-label="Keyboard shortcuts"><span class="qmark">?</span></button>
+    <button class="ico" id="btn-settings" title="Settings and AI key" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
+  </div>
+
+  <aside id="alts" class="side left ws-only" aria-label="Alternatives">
+    <div class="side-h">Alternatives</div>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-level="word" class="tab on">Word</button>
+      <button role="tab" data-level="sentence" class="tab">Sentence</button>
+      <button role="tab" data-level="paragraph" class="tab">Paragraph</button>
+    </div>
+    <div id="alt-target" class="alt-target">Click a word, sentence or paragraph.</div>
+    <ul id="alt-list" class="alt-list"></ul>
+    <div class="alt-add">
+      <input id="alt-input" type="text" placeholder="Add a version, press Enter" autocomplete="off">
+      <textarea id="alt-textarea" rows="4" placeholder="Add a paragraph version. Enter adds, Shift+Enter for a new line." hidden></textarea>
+      <button id="alt-ai" class="link-btn" title="Ctrl+Shift+E"><svg class="spark"><use href="#i-spark"/></svg> AI alternatives</button>
+    </div>
+  </aside>
+
+  <main id="stage" class="stage">
+    <div id="paper" class="paper">
+      <div id="editor" class="editor" contenteditable="plaintext-only" spellcheck="true" aria-label="Writing area" data-placeholder="Write. (Right-click for tools, ? for shortcuts.)"></div>
+      <div id="dots" class="dots-layer" aria-hidden="true"></div>
+    </div>
+  </main>
+
+  <aside id="overflow" class="side right" aria-label="Overflow" hidden>
+    <div class="side-h">Overflow <span class="muted">scratchpad</span></div>
+    <textarea id="overflow-text" placeholder="Stash things here. Drag or paste either way."></textarea>
+  </aside>
+
+  <div class="bottomleft ws-only">
+    <button class="ico" id="btn-docs" title="Documents" aria-label="Documents"><svg><use href="#i-docs"/></svg></button>
+    <button class="ico" id="btn-new" title="New document" aria-label="New document"><svg><use href="#i-plus"/></svg></button>
+    <div id="docs-pop" class="pop docs-pop" hidden></div>
+  </div>
+
+  <div class="labwrap ws-only">
+    <div id="lab-menu" class="pop lab-menu" hidden>
+      <div class="pop-h">The lab guide</div>
+      <div class="pop-sub">Scans</div>
+      <button data-lab="scan-weak">Mark weak sentences</button>
+      <button data-lab="scan-convoluted">Mark convoluted sentences</button>
+      <button data-lab="scan-clear">Clear marks</button>
+      <div class="pop-sub">Trims</div>
+      <button data-lab="trim-slight">Slight trim</button>
+      <button data-lab="trim-tighten">Tighten some</button>
+      <button data-lab="trim-sharper">Even sharper</button>
+      <button data-lab="trim-half">Cut in half</button>
+      <div id="lab-mode" class="pop-foot"></div>
+    </div>
+    <button id="btn-lab" class="lab" title="The lab" aria-label="The lab"><svg><use href="#i-beaker"/></svg></button>
+  </div>
+
+  <div class="about ws-only" id="about-line">An unofficial copy of Jason Fried's Write_On. If he ever releases it, go use his instead. It will be better. <span class="muted">— Paretile</span></div>
+
+  <div id="ctx" class="pop ctx" hidden role="menu">
+    <button data-ctx="ghost" role="menuitem"><span id="ctx-ghost-label">Ghost it</span><kbd>Ctrl+/</kbd></button>
+    <button data-ctx="alt" role="menuitem">Add an alternate<kbd>Ctrl+Shift+A</kbd></button>
+    <button data-ctx="ai" role="menuitem">AI Alternatives for selection<kbd>Ctrl+Shift+E</kbd></button>
+    <button data-ctx="stash" role="menuitem">Stash this in Overflow<kbd>Ctrl+Shift+S</kbd></button>
+  </div>
+
+  <div id="hint" class="hint" hidden role="note">
+    <span>Click the word count to hide or show the workspace · right-click text for tools · ↑/↓ on underlined text · <button id="hint-help" class="hint-link">? shortcuts</button></span>
+    <button id="hint-close" class="hint-x" title="Got it" aria-label="Dismiss hint">×</button>
+  </div>
+
+  <div id="toast" class="toast" hidden role="status"></div>
+
+  <div id="help" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-label="Keyboard shortcuts">
+      <div class="modal-h">Shortcuts</div>
+      <table class="keys">
+        <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Cycle versions while hovering underlined text</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd></td><td>Add an alternate (selection, or the word/sentence/paragraph at the caret)</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>AI alternatives for the selection</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Ghost it / Revive it</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></td><td>Stash this in Overflow</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save</td></tr>
+        <tr><td>Right-click</td><td>Tools for the selection, or the word under the pointer</td></tr>
+        <tr><td>Word count</td><td>Click to hide or show the workspace</td></tr>
+        <tr><td>Beaker</td><td>The lab: scans and trims</td></tr>
+      </table>
+      <div class="modal-actions"><span class="grow"></span><button id="help-close" class="btn primary">Got it</button></div>
+    </div>
+  </div>
+
+  <div id="settings" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-label="Settings">
+      <div class="modal-h">Settings</div>
+      <p class="muted small">AI is optional. Bring your own key for any OpenAI-compatible chat completions API. It is stored only in this browser (localStorage) and sent only to the URL below.</p>
+      <label>Base URL<input id="s-base" type="url" placeholder="https://api.openai.com/v1"></label>
+      <label>Model<input id="s-model" type="text" placeholder="gpt-4o-mini"></label>
+      <label>API key<input id="s-key" type="password" placeholder="sk-..." autocomplete="off"></label>
+      <label class="row"><input id="s-dark" type="checkbox"> Dark mode</label>
+      <div class="modal-actions">
+        <button id="s-clear" class="link-btn">Forget key</button>
+        <span class="grow"></span>
+        <button id="s-cancel" class="btn">Cancel</button>
+        <button id="s-save" class="btn primary">Save</button>
+      </div>
+      <p class="about-modal small">Copycat Writer is an unofficial copy of Jason Fried's Write_On. Not affiliated, not endorsed. If he ever releases it, go use his instead. It will be better. <span class="muted">— Paretile</span></p>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

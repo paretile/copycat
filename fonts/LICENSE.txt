@@ -1,0 +1,7 @@
+Fonts in this folder:
+
+- Inter (inter-600.woff2), from the Inter project, https://github.com/rsms/inter
+- IBM Plex Mono (IBMPlexMono-400.ttf, IBMPlexMono-500.ttf), from https://github.com/IBM/plex
+
+Both are licensed under the SIL Open Font License 1.1: https://openfontlicense.org
+They are not covered by this project's MIT license.
